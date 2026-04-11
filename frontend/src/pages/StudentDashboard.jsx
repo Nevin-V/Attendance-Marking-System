@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import AuthContext from '../context/AuthContext';
+import Webcam from 'react-webcam';
+import * as faceapi from 'face-api.js';
 
 const StudentDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -10,6 +12,15 @@ const StudentDashboard = () => {
     const [scanning, setScanning] = useState(false);
     const [scanResult, setScanResult] = useState('');
     const [error, setError] = useState('');
+    
+    // Face verification states
+    const [requireFace, setRequireFace] = useState(false);
+    const [verifyingFace, setVerifyingFace] = useState(false);
+    const [modelsLoaded, setModelsLoaded] = useState(false);
+    const [pendingQrToken, setPendingQrToken] = useState(null);
+    const webcamRef = useRef(null);
+
+    const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
 
     useEffect(() => {
         fetchFullHistory();
@@ -52,7 +63,7 @@ const StudentDashboard = () => {
         }
     }, [scanning]);
 
-    const markAttendance = async (qrToken) => {
+    const markAttendance = async (qrToken, faceDescriptor = null) => {
         if (!navigator.geolocation) {
              setError("Geolocation is not supported by your browser. Cannot mark attendance.");
              setTimeout(() => setError(''), 5000);
@@ -64,22 +75,88 @@ const StudentDashboard = () => {
         navigator.geolocation.getCurrentPosition(async (position) => {
             setError('');
             try {
-                await api.post('attendance/mark/', { 
+                const device_id = localStorage.getItem('trusted_device_id') || 'unknown';
+                const payload = { 
                     qr_token: qrToken,
                     latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                });
+                    longitude: position.coords.longitude,
+                    device_id: device_id
+                };
+                if (faceDescriptor) payload.face_descriptor = faceDescriptor;
+
+                await api.post('attendance/mark/', payload);
                 setScanResult('Attendance Marked Successfully!');
+                setRequireFace(false);
                 fetchFullHistory();
                 setTimeout(() => setScanResult(''), 3000);
             } catch (err) {
-                setError(err.response?.data?.error || 'Failed to mark attendance');
-                setTimeout(() => setError(''), 5000);
+                const responseData = err.response?.data;
+                if (responseData?.require_face) {
+                    setError("Device mismatched. Live facial verification required.");
+                    setPendingQrToken(qrToken);
+                    setRequireFace(true);
+                    loadFaceModels(); // Preload models when required
+                } else {
+                    setError(responseData?.error || 'Failed to mark attendance');
+                    setTimeout(() => setError(''), 5000);
+                }
             }
         }, (err) => {
             setError("Location access denied. Please enable location to mark attendance.");
             setTimeout(() => setError(''), 5000);
         });
+    };
+
+    const loadFaceModels = async () => {
+        if (modelsLoaded) return;
+        try {
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
+            setModelsLoaded(true);
+        } catch (err) {
+            console.error("Failed to load models", err);
+            setError("Failed to load AI face models.");
+        }
+    };
+
+    const handleFaceVerification = async () => {
+        if (!webcamRef.current || !pendingQrToken) return;
+        setVerifyingFace(true);
+        setError('');
+
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (!imageSrc) {
+            setError("Failed to grab camera frame.");
+            setVerifyingFace(false);
+            return;
+        }
+
+        try {
+            const img = new Image();
+            img.src = imageSrc;
+            await new Promise(resolve => img.onload = resolve);
+
+            const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+
+            if (!detection) {
+                setError("No face detected! Look straight into the camera.");
+                setVerifyingFace(false);
+                return;
+            }
+
+            const faceDescriptor = Array.from(detection.descriptor);
+            // Re-attempt attendance with the live face
+            await markAttendance(pendingQrToken, faceDescriptor);
+        } catch (err) {
+            console.error(err);
+            setError("Error processing verification.");
+        }
+        setVerifyingFace(false);
     };
 
     const presentCount = fullHistory.filter(r => r.status === 'Present').length;
@@ -176,6 +253,48 @@ const StudentDashboard = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Face Verification Modal */}
+                {requireFace && (
+                    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
+                        <div className="bg-gray-800 p-8 rounded shadow-2xl max-w-lg w-full border border-red-700 text-center">
+                            <h3 className="text-2xl font-bold text-red-500 mb-2">Unrecognized Device</h3>
+                            <p className="text-gray-300 mb-6 font-semibold">
+                                Live Facial Verification required to mark attendance on this device.
+                            </p>
+                            
+                            <div className="relative w-full overflow-hidden rounded bg-black flex justify-center items-center mb-6" style={{ height: '300px' }}>
+                                {!modelsLoaded ? (
+                                    <div className="text-blue-400 animate-pulse">Loading Biometric Models...</div>
+                                ) : (
+                                    <Webcam
+                                        audio={false}
+                                        ref={webcamRef}
+                                        screenshotFormat="image/jpeg"
+                                        className="w-full h-full object-cover"
+                                        videoConstraints={{ facingMode: "user" }}
+                                    />
+                                )}
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={handleFaceVerification}
+                                    disabled={!modelsLoaded || verifyingFace}
+                                    className={`flex-1 ${!modelsLoaded || verifyingFace ? 'bg-gray-600' : 'bg-red-600 hover:bg-red-700'} text-white py-3 rounded transform active:scale-95 font-bold`}
+                                >
+                                    {verifyingFace ? 'Verifying...' : 'Verify My Face'}
+                                </button>
+                                <button
+                                    onClick={() => { setRequireFace(false); setPendingQrToken(null); }}
+                                    className="bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded transform active:scale-95"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

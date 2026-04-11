@@ -6,6 +6,7 @@ import FacultyDashboard from './pages/FacultyDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import CRDashboard from './pages/CRDashboard';
 import Analytics from './pages/Analytics';
+import FaceOnboarding from './pages/FaceOnboarding';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -29,6 +30,15 @@ function App() {
             element={
               <ProtectedRoute role="STUDENT">
                 <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/face-onboarding"
+            element={
+              <ProtectedRoute role="STUDENT">
+                <FaceOnboarding />
               </ProtectedRoute>
             }
           />

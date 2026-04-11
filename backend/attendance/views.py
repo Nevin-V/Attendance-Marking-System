@@ -25,6 +25,11 @@ def haversine(lon1, lat1, lon2, lat2):
     r = 6371000 # Radius of earth in meters
     return c * r
 
+def euclidean_distance(desc1, desc2):
+    if not desc1 or not desc2 or len(desc1) != len(desc2):
+        return float('inf')
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(desc1, desc2)))
+
 class MarkAttendanceView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -38,6 +43,8 @@ class MarkAttendanceView(views.APIView):
             qr_token = serializer.validated_data['qr_token']
             student_lat = serializer.validated_data['latitude']
             student_lon = serializer.validated_data['longitude']
+            device_id = serializer.validated_data['device_id']
+            face_descriptor = serializer.validated_data.get('face_descriptor')
             
             try:
                 session = Session.objects.get(qr_token=qr_token)
@@ -52,6 +59,24 @@ class MarkAttendanceView(views.APIView):
                         'error': f'You are too far from the class ({distance:.0f}m). Must be within {session.radius_meters}m to mark attendance.'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Verify Biometrics & Device Identity
+            user = request.user
+            if not user.trusted_device_id:
+                return Response({'error': 'Face Registration Required'}, status=status.HTTP_403_FORBIDDEN)
+                
+            if user.trusted_device_id != device_id:
+                if not face_descriptor:
+                    return Response({'error': 'Device mismatch. Live face verification required.', 'require_face': True}, status=status.HTTP_403_FORBIDDEN)
+                
+                # Verify face because device changed
+                if not user.face_descriptor:
+                    return Response({'error': 'No registered face descriptor found. Please contact admin.'}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                distance = euclidean_distance(user.face_descriptor, face_descriptor)
+                # 0.5 is a somewhat strict euclidean threshold for face-api.js identifying the same person
+                if distance > 0.5:
+                    return Response({'error': f'Face verification failed! Distance metric: {distance:.2f}. You do not match the registered face.'}, status=status.HTTP_403_FORBIDDEN)
+                
             if not session.is_active:
                 return Response({'error': 'Session is inactive'}, status=status.HTTP_400_BAD_REQUEST)
 

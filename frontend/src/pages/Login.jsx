@@ -18,7 +18,11 @@ const Login = () => {
             } else if (user.role === 'CLASS_REP') {
                 navigate('/cr');
             } else {
-                navigate('/student');
+                if (!user.has_registered_face) {
+                    navigate('/face-onboarding');
+                } else {
+                    navigate('/student');
+                }
             }
         } catch (err) {
             setError('Invalid credentials');
