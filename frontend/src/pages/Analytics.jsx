@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import AuthContext from '../context/AuthContext';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+ChartJS.defaults.color = '#9ca3af';
 
 const Analytics = () => {
     const { user } = useContext(AuthContext);
@@ -42,55 +43,63 @@ const Analytics = () => {
         ],
     };
 
-    const studentChartData = studentData ? {
-        labels: ['Attendance %', 'Participation %'],
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } },
+            y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } }
+        },
+        plugins: {
+            legend: { labels: { color: '#e5e7eb' } }
+        }
+    };
+
+    const studentClassChartData = studentData?.class_breakdown ? {
+        labels: studentData.class_breakdown.map(c => c.subject),
         datasets: [
             {
-                label: 'Engagement',
-                data: [studentData.attendance_pct, studentData.participation_pct],
-                backgroundColor: [
-                    'rgba(75, 192, 192, 0.2)',
-                    'rgba(153, 102, 255, 0.2)',
-                ],
-                borderColor: [
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)',
-                ],
-                borderWidth: 1,
-            },
+                label: 'Attendance %',
+                data: studentData.class_breakdown.map(c => c.attendance_pct),
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+            }
         ],
     } : null;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-900 text-gray-100">
             <Navbar />
             <div className="p-8">
                 <h2 className="text-2xl font-bold mb-6">Analytics Dashboard</h2>
 
-                <div className="bg-white p-6 rounded shadow">
+                <div className="bg-gray-800 border border-gray-700 p-6 rounded shadow-lg">
                     {user.role === 'FACULTY' ? (
                         <div>
-                            <h3 className="text-xl font-semibold mb-4">Class Performance</h3>
+                            <h3 className="text-xl font-semibold mb-4 text-white">Class Performance</h3>
                             <div className="h-96">
-                                <Bar data={facultyChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+                                <Bar data={facultyChartData} options={chartOptions} />
                             </div>
                         </div>
                     ) : (
                         studentData && (
                             <div>
-                                <h3 className="text-xl font-semibold mb-4">My Engagement Score: {studentData.engagement_score}%</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="h-64">
-                                        <Pie data={studentChartData} />
+                                <h3 className="text-xl font-semibold mb-4 text-white">My Engagement Score: {studentData.engagement_score}%</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                    <div className="h-64 flex justify-center w-full">
+                                        {studentClassChartData && studentClassChartData.labels.length > 0 ? (
+                                            <Bar data={studentClassChartData} options={chartOptions} />
+                                        ) : (
+                                            <p className="text-gray-500 self-center">No class attendance data available yet.</p>
+                                        )}
                                     </div>
                                     <div className="flex flex-col justify-center space-y-4">
-                                        <div className="p-4 bg-blue-50 rounded">
-                                            <p className="text-gray-600">Total Scans</p>
-                                            <p className="text-2xl font-bold">{studentData.attendance_count}</p>
+                                        <div className="p-4 bg-blue-900 bg-opacity-30 border border-blue-800 rounded">
+                                            <p className="text-gray-400">Total Scans</p>
+                                            <p className="text-2xl font-bold text-blue-300">{studentData.attendance_count}</p>
                                         </div>
-                                        <div className="p-4 bg-green-50 rounded">
-                                            <p className="text-gray-600">Possible Sessions</p>
-                                            <p className="text-2xl font-bold">{studentData.total_sessions_possible}</p>
+                                        <div className="p-4 bg-green-900 bg-opacity-30 border border-green-800 rounded">
+                                            <p className="text-gray-400">Possible Sessions</p>
+                                            <p className="text-2xl font-bold text-green-300">{studentData.total_sessions_possible}</p>
                                         </div>
                                     </div>
                                 </div>

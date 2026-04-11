@@ -12,7 +12,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="bg-blue-600 p-4 text-white flex justify-between items-center">
+        <nav className="bg-gray-800 border-b border-gray-700 p-4 text-white flex justify-between items-center">
             <h1 className="text-xl font-bold">Smart Attendance</h1>
             <div className="flex items-center gap-4">
                 {user && (
@@ -25,7 +25,7 @@ const Navbar = () => {
                     </>
                 )}
                 <span className="mr-2">Welcome, {user?.username} ({user?.role})</span>
-                <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded">Logout</button>
+                <button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 transform active:scale-95 transition-all duration-150 px-3 py-1 rounded">Logout</button>
             </div>
         </nav>
     );

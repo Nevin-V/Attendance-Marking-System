@@ -53,15 +53,33 @@ const StudentDashboard = () => {
     }, [scanning]);
 
     const markAttendance = async (qrToken) => {
-        try {
-            await api.post('attendance/mark/', { qr_token: qrToken });
-            setScanResult('Attendance Marked Successfully!');
-            fetchFullHistory();
-            setTimeout(() => setScanResult(''), 3000);
-        } catch (err) {
-            setError(err.response?.data?.error || 'Failed to mark attendance');
-            setTimeout(() => setError(''), 5000);
+        if (!navigator.geolocation) {
+             setError("Geolocation is not supported by your browser. Cannot mark attendance.");
+             setTimeout(() => setError(''), 5000);
+             return;
         }
+
+        setError("Fetching location... please wait");
+        
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            setError('');
+            try {
+                await api.post('attendance/mark/', { 
+                    qr_token: qrToken,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                });
+                setScanResult('Attendance Marked Successfully!');
+                fetchFullHistory();
+                setTimeout(() => setScanResult(''), 3000);
+            } catch (err) {
+                setError(err.response?.data?.error || 'Failed to mark attendance');
+                setTimeout(() => setError(''), 5000);
+            }
+        }, (err) => {
+            setError("Location access denied. Please enable location to mark attendance.");
+            setTimeout(() => setError(''), 5000);
+        });
     };
 
     const presentCount = fullHistory.filter(r => r.status === 'Present').length;
@@ -70,25 +88,25 @@ const StudentDashboard = () => {
     const attendancePercent = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 0;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-900 text-gray-100">
             <Navbar />
             <div className="p-8">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">Student Dashboard</h2>
-                    <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm">
+                    <div className="bg-blue-900 bg-opacity-30 border border-blue-800 text-blue-300 px-4 py-2 rounded-lg text-sm">
                         Logged in as: <strong>{user?.username}</strong>
                     </div>
                 </div>
 
                 {/* Scanner Section */}
-                <div className="bg-white p-6 rounded shadow mb-8 text-center">
-                    {scanResult && <div className="bg-green-100 text-green-700 p-4 rounded mb-4">{scanResult}</div>}
+                <div className="bg-gray-800 border border-gray-700 p-6 rounded shadow-lg mb-8 text-center">
+                    {scanResult && <div className="bg-green-900 bg-opacity-40 text-green-400 p-4 rounded mb-4 border border-green-800">{scanResult}</div>}
                     {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>}
 
                     {!scanning ? (
                         <button
                             onClick={() => setScanning(true)}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700"
+                            className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transform active:scale-95 transition-all duration-150 shadow-md"
                         >
                             Scan QR Code
                         </button>
@@ -108,27 +126,27 @@ const StudentDashboard = () => {
                 {/* Attendance Summary */}
                 {totalSessions > 0 && (
                     <div className="grid grid-cols-3 gap-4 mb-8">
-                        <div className="bg-white p-4 rounded shadow text-center">
-                            <p className="text-3xl font-bold text-green-600">{presentCount}</p>
-                            <p className="text-sm text-gray-500">Present</p>
+                        <div className="bg-gray-800 border border-gray-700 p-4 rounded shadow-lg text-center">
+                            <p className="text-3xl font-bold text-green-500">{presentCount}</p>
+                            <p className="text-sm text-gray-400">Present</p>
                         </div>
-                        <div className="bg-white p-4 rounded shadow text-center">
-                            <p className="text-3xl font-bold text-red-600">{absentCount}</p>
-                            <p className="text-sm text-gray-500">Absent</p>
+                        <div className="bg-gray-800 border border-gray-700 p-4 rounded shadow-lg text-center">
+                            <p className="text-3xl font-bold text-red-500">{absentCount}</p>
+                            <p className="text-sm text-gray-400">Absent</p>
                         </div>
-                        <div className="bg-white p-4 rounded shadow text-center">
-                            <p className={`text-3xl font-bold ${attendancePercent >= 75 ? 'text-green-600' : 'text-red-600'}`}>{attendancePercent}%</p>
-                            <p className="text-sm text-gray-500">Attendance</p>
+                        <div className="bg-gray-800 border border-gray-700 p-4 rounded shadow-lg text-center">
+                            <p className={`text-3xl font-bold ${attendancePercent >= 75 ? 'text-green-500' : 'text-red-500'}`}>{attendancePercent}%</p>
+                            <p className="text-sm text-gray-400">Attendance</p>
                         </div>
                     </div>
                 )}
 
                 {/* Full History */}
-                <div className="bg-white rounded shadow overflow-hidden">
-                    <h3 className="text-xl font-bold p-6 border-b">Attendance History</h3>
+                <div className="bg-gray-800 border border-gray-700 rounded shadow-lg overflow-hidden">
+                    <h3 className="text-xl font-bold p-6 border-b border-gray-700">Attendance History</h3>
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-gray-100">
+                            <tr className="bg-gray-700">
                                 <th className="p-4">Date</th>
                                 <th className="p-4">Subject</th>
                                 <th className="p-4">Department</th>
@@ -137,22 +155,22 @@ const StudentDashboard = () => {
                         </thead>
                         <tbody>
                             {fullHistory.map((record, idx) => (
-                                <tr key={idx} className="border-b">
+                                <tr key={idx} className="border-b border-gray-700 hover:bg-gray-750 transition-colors">
                                     <td className="p-4">{record.date} {record.time}</td>
                                     <td className="p-4 font-semibold">{record.subject}</td>
-                                    <td className="p-4 text-gray-600">{record.department}</td>
+                                    <td className="p-4 text-gray-400">{record.department}</td>
                                     <td className="p-4">
                                         {record.status === 'Present' ? (
-                                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">✅ Present</span>
+                                            <span className="bg-green-900 bg-opacity-40 text-green-400 border border-green-800 px-2 py-1 rounded text-sm">✅ Present</span>
                                         ) : (
-                                            <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">❌ Absent</span>
+                                            <span className="bg-red-900 bg-opacity-40 text-red-400 border border-red-800 px-2 py-1 rounded text-sm">❌ Absent</span>
                                         )}
                                     </td>
                                 </tr>
                             ))}
                             {fullHistory.length === 0 && (
                                 <tr>
-                                    <td colSpan="4" className="p-4 text-center text-gray-500">No attendance records found.</td>
+                                    <td colSpan="4" className="p-4 text-center text-gray-400">No attendance records found.</td>
                                 </tr>
                             )}
                         </tbody>

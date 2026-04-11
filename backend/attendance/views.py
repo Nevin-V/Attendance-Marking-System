@@ -7,6 +7,23 @@ from classes.models import Class
 from student_groups.models import StudentGroup
 from .serializers import AttendanceSerializer, AttendanceMarkSerializer
 from datetime import timedelta
+import math
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance in meters between two points 
+    on the earth (specified in decimal degrees)
+    """
+    if lon1 is None or lat1 is None or lon2 is None or lat2 is None:
+        return float('inf')
+        
+    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a)) 
+    r = 6371000 # Radius of earth in meters
+    return c * r
 
 class MarkAttendanceView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -19,10 +36,21 @@ class MarkAttendanceView(views.APIView):
         serializer = AttendanceMarkSerializer(data=request.data)
         if serializer.is_valid():
             qr_token = serializer.validated_data['qr_token']
+            student_lat = serializer.validated_data['latitude']
+            student_lon = serializer.validated_data['longitude']
+            
             try:
                 session = Session.objects.get(qr_token=qr_token)
             except Session.DoesNotExist:
                 return Response({'error': 'Invalid QR Code'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Verify Location
+            if session.latitude is not None and session.longitude is not None:
+                distance = haversine(student_lon, student_lat, session.longitude, session.latitude)
+                if distance > session.radius_meters:
+                    return Response({
+                        'error': f'You are too far from the class ({distance:.0f}m). Must be within {session.radius_meters}m to mark attendance.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
             if not session.is_active:
                 return Response({'error': 'Session is inactive'}, status=status.HTTP_400_BAD_REQUEST)

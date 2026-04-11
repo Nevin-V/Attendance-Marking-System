@@ -6,7 +6,7 @@ class SessionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Session
-        fields = ['id', 'class_instance', 'start_time', 'end_time', 'qr_token', 'is_active', 'student_group']
+        fields = ['id', 'class_instance', 'start_time', 'end_time', 'qr_token', 'is_active', 'student_group', 'latitude', 'longitude', 'radius_meters']
 
     def get_student_group(self, obj):
         if obj.class_instance and obj.class_instance.student_group:

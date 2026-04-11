@@ -7,6 +7,9 @@ class Session(models.Model):
     end_time = models.DateTimeField(null=True, blank=True)
     qr_token = models.CharField(max_length=255, unique=True)
     is_active = models.BooleanField(default=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    radius_meters = models.IntegerField(default=50)
 
     def __str__(self):
         return f"Session for {self.class_instance} at {self.start_time}"

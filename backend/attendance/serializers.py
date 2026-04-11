@@ -12,3 +12,5 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
 class AttendanceMarkSerializer(serializers.Serializer):
     qr_token = serializers.CharField()
+    latitude = serializers.FloatField(required=True)
+    longitude = serializers.FloatField(required=True)

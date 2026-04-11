@@ -41,43 +41,45 @@ class StudentAnalyticsView(views.APIView):
 
     def get(self, request):
         if request.user.role == User.Role.STUDENT:
-            # Get all classes? Or just global stats?
-            # Prompt: "View engagement score"
+            user = request.user
+            from student_groups.models import StudentGroup
+            from classes.models import Class
             
-            # sessions_attended = Attendance.objects.filter(student=request.user).count()
-            # participation_count = Attendance.objects.filter(student=request.user, participated=True).count()
-            # But we need "Total Sessions" to calculate %.
-            # Since no enrollment, we can't know which classes the student belongs to exactly.
-            # But we can assume they belong to classes they attended? No.
-            # We can calculate based on All Sessions of Classes they have attended at least once?
-            # Or just Total Sessions in the system? (Simple MVP approach).
-            # "Class Management -> Create Class". No "Enroll Student".
-            # So a student can attend ANY class session if they scan QR.
-            # So "Total Scans" is their attendance.
-            # Engagement Score: (Attendance % + Participation Flag) / 2
-            # "Attendance %" needs a denominator.
-            # I will simple return the raw counts and let frontend display "attended X sessions".
-            # Or assume denominator = Sum of sessions of classes they have at least 1 attendance in.
+            groups = StudentGroup.objects.filter(students=user)
+            classes = Class.objects.filter(student_group__in=groups)
             
-            attended_sessions_qs = Attendance.objects.filter(student=request.user)
-            attended_count = attended_sessions_qs.count()
-            participated_count = attended_sessions_qs.filter(participated=True).count()
+            global_attended = 0
+            global_possible = 0
+            class_breakdown = []
             
-            # Calculate denominator: Find unique classes attended, count their total sessions.
-            class_ids = attended_sessions_qs.values_list('session__class_instance', flat=True).distinct()
-            total_sessions_possible = Session.objects.filter(class_instance__id__in=class_ids).count()
+            attended_session_ids = set(
+                Attendance.objects.filter(student=user).values_list('session_id', flat=True)
+            )
             
-            attendance_pct = (attended_count / total_sessions_possible * 100) if total_sessions_possible > 0 else 0
-            participation_pct = (participated_count / total_sessions_possible * 100) if total_sessions_possible > 0 else 0
-            
-            engagement_score = (attendance_pct + participation_pct) / 2
+            for cls in classes:
+                sessions = Session.objects.filter(class_instance=cls, is_active=False)
+                total_sessions = sessions.count()
+                attended_sessions = len([s for s in sessions if s.id in attended_session_ids])
+                
+                global_possible += total_sessions
+                global_attended += attended_sessions
+                
+                attendance_pct = (attended_sessions / total_sessions * 100) if total_sessions > 0 else 0
+                class_breakdown.append({
+                    'subject': cls.subject,
+                    'department': cls.department,
+                    'attended': attended_sessions,
+                    'total_sessions': total_sessions,
+                    'attendance_pct': round(attendance_pct, 2)
+                })
+                
+            global_attendance_pct = (global_attended / global_possible * 100) if global_possible > 0 else 0
             
             return Response({
-                'attendance_count': attended_count,
-                'total_sessions_possible': total_sessions_possible,
-                'attendance_pct': round(attendance_pct, 2),
-                'participation_pct': round(participation_pct, 2),
-                'engagement_score': round(engagement_score, 2)
+                'attendance_count': global_attended,
+                'total_sessions_possible': global_possible,
+                'engagement_score': round(global_attendance_pct, 2),
+                'class_breakdown': class_breakdown
             })
             
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
