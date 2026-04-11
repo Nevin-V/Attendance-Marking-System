@@ -103,6 +103,16 @@ const FacultyDashboard = () => {
         }
     };
 
+    const deleteClass = async (classId, subject) => {
+        if (!window.confirm(`Are you sure you want to delete "${subject}"? This will also delete all session history for this class.`)) return;
+        try {
+            await api.delete(`classes/${classId}/`);
+            fetchClasses();
+        } catch (err) {
+            console.error("Failed to delete class", err);
+        }
+    };
+
     const startSession = async (classId) => {
         const res = await api.post('sessions/start/', { class_instance: classId });
         setActiveSession(res.data);
@@ -328,7 +338,7 @@ const FacultyDashboard = () => {
                                     <option key={group.id} value={group.id}>{group.name} ({group.student_count})</option>
                                 ))}
                             </select>
-                            <div className="mt-4 flex gap-2">
+                            <div className="mt-4 flex gap-2 flex-wrap">
                                 <button
                                     onClick={() => startSession(cls.id)}
                                     className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
@@ -340,6 +350,12 @@ const FacultyDashboard = () => {
                                     className="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
                                 >
                                     History
+                                </button>
+                                <button
+                                    onClick={() => deleteClass(cls.id, cls.subject)}
+                                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                                >
+                                    🗑️ Delete
                                 </button>
                             </div>
                         </div>

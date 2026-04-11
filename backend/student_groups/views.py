@@ -180,5 +180,10 @@ class RemoveStudentView(views.APIView):
         except User.DoesNotExist:
             return Response({'error': 'Student not found in group'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Delete stored credentials
+        StudentCredential.objects.filter(group=group, student=student).delete()
+        # Remove from group
         group.students.remove(student)
-        return Response({'message': 'Student removed from group'}, status=status.HTTP_204_NO_CONTENT)
+        # Delete the user account entirely so they can't log in anymore
+        student.delete()
+        return Response({'message': 'Student removed and account deleted'}, status=status.HTTP_204_NO_CONTENT)
