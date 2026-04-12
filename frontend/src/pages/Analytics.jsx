@@ -8,6 +8,14 @@ import AuthContext from '../context/AuthContext';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 ChartJS.defaults.color = '#9ca3af';
 
+const calculateClassesRequired = (present, total) => {
+    if (total === 0) return 0;
+    const currentPct = present / total;
+    if (currentPct >= 0.85) return 0;
+    const required = Math.ceil((0.85 * total - present) / 0.15);
+    return required > 0 ? required : 0;
+};
+
 const Analytics = () => {
     const { user } = useContext(AuthContext);
     const [classData, setClassData] = useState([]);
@@ -102,6 +110,32 @@ const Analytics = () => {
                                             <p className="text-2xl font-bold text-green-300">{studentData.total_sessions_possible}</p>
                                         </div>
                                     </div>
+                                </div>
+
+                                <h3 className="text-xl font-bold mb-6 text-white border-b border-gray-700 pb-2">Subject Breakdown</h3>
+                                <div className="space-y-4">
+                                    {studentData.class_breakdown.map((cls, idx) => {
+                                        const classesNeeded = calculateClassesRequired(cls.attended, cls.total_sessions);
+                                        const isLow = cls.attendance_pct < 85 && cls.total_sessions > 0;
+                                        
+                                        return (
+                                            <div key={idx} className={`p-4 rounded border ${isLow ? 'bg-red-900 bg-opacity-20 border-red-800' : 'bg-gray-800 border-gray-700 shadow-lg'}`}>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <h4 className="font-bold text-lg text-gray-200">{cls.subject}</h4>
+                                                    <span className={`font-bold text-xl ${isLow ? 'text-red-500' : 'text-green-500'}`}>{cls.attendance_pct}%</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm text-gray-400 items-center">
+                                                    <span>Attended: {cls.attended} / {cls.total_sessions}</span>
+                                                    {isLow && classesNeeded > 0 && (
+                                                        <span className="text-yellow-500 font-bold bg-yellow-900 bg-opacity-30 px-3 py-1 rounded">🎯 Attend {classesNeeded} more class{classesNeeded > 1 ? 'es' : ''} to hit 85%</span>
+                                                    )}
+                                                    {cls.total_sessions > 0 && !isLow && (
+                                                        <span className="text-green-500 font-semibold">Safe Zone</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )

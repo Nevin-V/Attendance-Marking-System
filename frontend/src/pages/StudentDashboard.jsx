@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import AuthContext from '../context/AuthContext';
 import Webcam from 'react-webcam';
 import * as faceapi from 'face-api.js';
@@ -12,6 +12,7 @@ const StudentDashboard = () => {
     const [scanning, setScanning] = useState(false);
     const [scanResult, setScanResult] = useState('');
     const [error, setError] = useState('');
+    const [faceError, setFaceError] = useState('');
     
     // Face verification states
     const [requireFace, setRequireFace] = useState(false);
@@ -39,7 +40,13 @@ const StudentDashboard = () => {
         if (scanning) {
             const scanner = new Html5QrcodeScanner(
                 "reader",
-                { fps: 10, qrbox: { width: 250, height: 250 } },
+                { 
+                    fps: 10,
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true
+                    },
+                    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+                },
             /* verbose= */ false
             );
 
@@ -87,15 +94,17 @@ const StudentDashboard = () => {
                 await api.post('attendance/mark/', payload);
                 setScanResult('Attendance Marked Successfully!');
                 setRequireFace(false);
+                setFaceError(''); // Clear face errors on success
                 fetchFullHistory();
                 setTimeout(() => setScanResult(''), 3000);
             } catch (err) {
                 const responseData = err.response?.data;
                 if (responseData?.require_face) {
+                    // This is a prompt, not necessarily an "error" that needs a sticky overlay
                     setError("Device mismatched. Live facial verification required.");
                     setPendingQrToken(qrToken);
                     setRequireFace(true);
-                    loadFaceModels(); // Preload models when required
+                    loadFaceModels(); 
                 } else {
                     setError(responseData?.error || 'Failed to mark attendance');
                     setTimeout(() => setError(''), 5000);
@@ -118,18 +127,18 @@ const StudentDashboard = () => {
             setModelsLoaded(true);
         } catch (err) {
             console.error("Failed to load models", err);
-            setError("Failed to load AI face models.");
+            setFaceError("Failed to load AI face models.");
         }
     };
 
     const handleFaceVerification = async () => {
         if (!webcamRef.current || !pendingQrToken) return;
         setVerifyingFace(true);
-        setError('');
+        setFaceError('');
 
         const imageSrc = webcamRef.current.getScreenshot();
         if (!imageSrc) {
-            setError("Failed to grab camera frame.");
+            setFaceError("Failed to grab camera frame.");
             setVerifyingFace(false);
             return;
         }
@@ -144,7 +153,7 @@ const StudentDashboard = () => {
                 .withFaceDescriptor();
 
             if (!detection) {
-                setError("No face detected! Look straight into the camera.");
+                setFaceError("No face detected! Look straight into the camera.");
                 setVerifyingFace(false);
                 return;
             }
@@ -154,7 +163,7 @@ const StudentDashboard = () => {
             await markAttendance(pendingQrToken, faceDescriptor);
         } catch (err) {
             console.error(err);
-            setError("Error processing verification.");
+            setFaceError("Error processing verification.");
         }
         setVerifyingFace(false);
     };
@@ -171,14 +180,14 @@ const StudentDashboard = () => {
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">Student Dashboard</h2>
                     <div className="bg-blue-900 bg-opacity-30 border border-blue-800 text-blue-300 px-4 py-2 rounded-lg text-sm">
-                        Logged in as: <strong>{user?.username}</strong>
+                        Logged in as: <strong>{user?.full_name || user?.username}</strong>
                     </div>
                 </div>
 
                 {/* Scanner Section */}
                 <div className="bg-gray-800 border border-gray-700 p-6 rounded shadow-lg mb-8 text-center">
                     {scanResult && <div className="bg-green-900 bg-opacity-40 text-green-400 p-4 rounded mb-4 border border-green-800">{scanResult}</div>}
-                    {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>}
+                    {error && <div className="bg-red-900 bg-opacity-20 text-red-500 p-4 rounded mb-4 border border-red-800 font-semibold">{error}</div>}
 
                     {!scanning ? (
                         <button
@@ -292,6 +301,22 @@ const StudentDashboard = () => {
                                     Cancel
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                )}
+                {/* Face Verification Error Overlay */}
+                {faceError && (
+                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-[100]">
+                        <div className="bg-gray-800 border-2 border-red-600 p-6 rounded-lg shadow-2xl max-w-sm w-full text-center">
+                            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+                            <h3 className="text-xl font-bold text-white mb-2">Face Verification Failed</h3>
+                            <p className="text-gray-300 mb-6">{faceError}</p>
+                            <button 
+                                onClick={() => setFaceError('')}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition-colors transform active:scale-95 shadow-lg"
+                            >
+                                Dismiss
+                            </button>
                         </div>
                     </div>
                 )}

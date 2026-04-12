@@ -100,12 +100,17 @@ const CRDashboard = () => {
     };
 
     const removeStudent = async (studentId) => {
-        if (!window.confirm('Are you sure you want to remove this student?')) return;
+        if (!window.confirm('Are you sure you want to remove this student? This will permanently delete their account.')) return;
         try {
             await api.delete(`groups/${selectedGroup.id}/students/${studentId}/remove/`);
-            refreshStudentList();
+            // Optimistic UI update or just refresh
+            setGroupStudents(prev => prev.filter(s => s.id !== studentId));
+            fetchGroups(); // Update student count in groups list
+            alert("Student removed successfully.");
         } catch (err) {
             console.error("Failed to remove student", err);
+            const errMsg = err.response?.data?.error || "Failed to remove student. Please try again.";
+            alert(errMsg);
         }
     };
 

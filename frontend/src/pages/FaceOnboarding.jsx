@@ -85,7 +85,7 @@ const FaceOnboarding = () => {
                     This will securely pin your identity to this proxy defense system.
                 </p>
 
-                {error && <div className="bg-red-900 bg-opacity-40 text-red-400 p-4 rounded mb-6 border border-red-800">{error}</div>}
+
 
                 <div className="relative w-full overflow-hidden rounded bg-black flex justify-center items-center mb-6" style={{ height: '300px' }}>
                     {!modelsLoaded ? (
@@ -116,6 +116,23 @@ const FaceOnboarding = () => {
                         Cancel
                     </button>
                 </div>
+
+                {/* Face Registration Error Overlay */}
+                {error && (
+                    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-[100]">
+                        <div className="bg-gray-800 border-2 border-red-600 p-8 rounded-lg shadow-2xl max-w-sm w-full text-center">
+                            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                            <h3 className="text-2xl font-bold text-white mb-2">Registration Issue</h3>
+                            <p className="text-gray-300 mb-6">{error}</p>
+                            <button 
+                                onClick={() => setError(null)}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition-colors transform active:scale-95 shadow-lg"
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

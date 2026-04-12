@@ -305,19 +305,19 @@ const FacultyDashboard = () => {
                                 {activeSession.student_group && absentees.length > 0 && (
                                     <div className="mt-4 border-t border-gray-700 pt-4">
                                         <h4 className="font-bold text-red-500 mb-2">Absentees ({absentees.length})</h4>
-                                        <div className="bg-red-900 bg-opacity-30 border border-red-800 p-3 rounded max-h-40 overflow-y-auto">
+                                        <div className="bg-gray-800 border border-gray-700 p-3 rounded max-h-40 overflow-y-auto">
                                             <table className="w-full text-sm">
                                                 <thead>
-                                                    <tr className="border-b border-red-800">
-                                                        <th className="text-left pb-1">Name</th>
-                                                        <th className="text-left pb-1">Reg No.</th>
+                                                    <tr className="border-b border-gray-700">
+                                                        <th className="text-left pb-1 text-gray-300">Name</th>
+                                                        <th className="text-left pb-1 text-gray-300">Reg No.</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {absentees.map(s => (
-                                                        <tr key={s.username} className="border-b border-red-800">
-                                                            <td className="py-1 text-red-400">{s.name}</td>
-                                                            <td className="py-1 font-mono text-red-500 text-xs">{s.register_number}</td>
+                                                        <tr key={s.username} className="border-b border-gray-700">
+                                                            <td className="py-1 text-red-500 font-semibold">{s.name}</td>
+                                                            <td className="py-1 font-mono text-gray-400 text-xs">{s.register_number}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -454,20 +454,20 @@ const FacultyDashboard = () => {
                                         {historyAbsentees.length > 0 && (
                                             <div className="border-t border-gray-700 pt-4">
                                                 <h4 className="font-bold text-red-500 mb-2">Absentees ({historyAbsentees.length})</h4>
-                                                <div className="bg-red-900 bg-opacity-30 p-3 rounded">
+                                                <div className="bg-gray-800 border border-gray-700 p-3 rounded">
                                                     <table className="w-full text-sm">
                                                         <thead>
-                                                            <tr className="border-b border-red-800">
-                                                                <th className="text-left pb-1">Name</th>
-                                                                <th className="text-left pb-1">Reg No.</th>
-                                                                <th className="text-left pb-1">Status</th>
+                                                            <tr className="border-b border-gray-700">
+                                                                <th className="text-left pb-1 text-gray-300">Name</th>
+                                                                <th className="text-left pb-1 text-gray-300">Reg No.</th>
+                                                                <th className="text-left pb-1 text-gray-300">Status</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {historyAbsentees.map(s => (
-                                                                <tr key={s.username} className="border-b border-red-800">
-                                                                    <td className="py-1 text-red-400">{s.name}</td>
-                                                                    <td className="py-1 font-mono text-red-500 text-xs">{s.register_number}</td>
+                                                                <tr key={s.username} className="border-b border-gray-700">
+                                                                    <td className="py-1 text-red-500 font-semibold">{s.name}</td>
+                                                                    <td className="py-1 font-mono text-gray-400 text-xs">{s.register_number}</td>
                                                                     <td className="py-1"><span className="text-red-500 font-bold">Absent</span></td>
                                                                 </tr>
                                                             ))}

@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
+import logo from '../assets/scan mark logo.png';
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -31,8 +32,11 @@ const Login = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900">
-            <div className="bg-gray-800 p-8 rounded shadow-lg w-96 border border-gray-700">
-                <h2 className="text-2xl font-bold mb-6 text-center text-white">Smart Attendance</h2>
+            <div className="bg-gray-800 p-8 rounded shadow-2xl w-96 border border-gray-700">
+                <div className="flex justify-center mb-4">
+                    <img src={logo} alt="Logo" className="h-32 w-auto object-contain scale-110" />
+                </div>
+                <h2 className="text-4xl font-extrabold tracking-wider mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 font-sans drop-shadow-md">SCAN MARK</h2>
                 {error && <p className="text-red-500 mb-4">{error}</p>}
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">

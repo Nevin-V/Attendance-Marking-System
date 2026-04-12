@@ -12,6 +12,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
         token['role'] = user.role
+        token['full_name'] = user.first_name
         token['has_registered_face'] = bool(user.face_descriptor)
         return token
 
@@ -19,5 +20,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data['role'] = self.user.role
         data['user_id'] = self.user.id
+        data['full_name'] = self.user.first_name
         data['has_registered_face'] = bool(self.user.face_descriptor)
         return data
