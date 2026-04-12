@@ -41,7 +41,10 @@ const StudentDashboard = () => {
             const scanner = new Html5QrcodeScanner(
                 "reader",
                 { 
-                    fps: 10,
+                    fps: 15,
+                    // qrbox focuses the camera scanning region — helps live camera detect codes faster
+                    // Note: This does NOT restrict file upload scanning (whole image is always scanned)
+                    qrbox: { width: 250, height: 250 },
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true
                     },
