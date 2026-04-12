@@ -42,9 +42,9 @@ const StudentDashboard = () => {
                 "reader",
                 { 
                     fps: 15,
-                    // qrbox focuses the camera scanning region — helps live camera detect codes faster
-                    // Note: This does NOT restrict file upload scanning (whole image is always scanned)
-                    qrbox: { width: 250, height: 250 },
+                    // qrbox focuses the scan region for live camera; does not restrict file upload
+                    qrbox: { width: 300, height: 300 },
+                    aspectRatio: 1.0,
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true
                     },
@@ -193,18 +193,26 @@ const StudentDashboard = () => {
                     {error && <div className="bg-red-900 bg-opacity-20 text-red-500 p-4 rounded mb-4 border border-red-800 font-semibold">{error}</div>}
 
                     {!scanning ? (
-                        <button
-                            onClick={() => setScanning(true)}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transform active:scale-95 transition-all duration-150 shadow-md"
-                        >
-                            Scan QR Code
-                        </button>
+                        <div className="flex flex-col items-center gap-3">
+                            <p className="text-gray-400 text-sm mb-2">Point your camera at the QR code shown by your faculty</p>
+                            <button
+                                onClick={() => setScanning(true)}
+                                className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transform active:scale-95 transition-all duration-150 shadow-md flex items-center gap-3"
+                            >
+                                <span className="text-2xl">📷</span> Scan QR Code
+                            </button>
+                        </div>
                     ) : (
                         <div>
-                            <div id="reader" className="w-full max-w-sm mx-auto"></div>
+                            {/* Scanning status indicator */}
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                                <span className="inline-block w-3 h-3 bg-green-400 rounded-full animate-ping"></span>
+                                <span className="text-green-400 font-semibold text-sm">Scanning — Hold your camera steady towards the QR Code</span>
+                            </div>
+                            <div id="reader" className="w-full max-w-md mx-auto rounded-lg overflow-hidden border-2 border-blue-700"></div>
                             <button
                                 onClick={() => setScanning(false)}
-                                className="mt-4 text-red-600 underline"
+                                className="mt-4 text-red-400 hover:text-red-300 underline text-sm"
                             >
                                 Cancel Scan
                             </button>

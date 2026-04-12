@@ -9,7 +9,7 @@ class Session(models.Model):
     is_active = models.BooleanField(default=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
-    radius_meters = models.IntegerField(default=50)
+    radius_meters = models.IntegerField(default=200)  # Increased from 50m to account for GPS inaccuracy (±20-50m indoors)
 
     def __str__(self):
         return f"Session for {self.class_instance} at {self.start_time}"
