@@ -87,50 +87,63 @@ const StudentDashboard = () => {
         }
     }, [scanning]);
 
-    const markAttendance = async (qrToken, faceDescriptor = null) => {
-        if (!navigator.geolocation) {
-             setError("Geolocation is not supported by your browser. Cannot mark attendance.");
-             setTimeout(() => setError(''), 5000);
-             return;
-        }
-
-        setError("Fetching location... please wait");
-        
-        navigator.geolocation.getCurrentPosition(async (position) => {
-            setError('');
-            try {
-                const device_id = localStorage.getItem('trusted_device_id') || 'unknown';
-                const payload = { 
-                    qr_token: qrToken,
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    device_id: device_id
-                };
-                if (faceDescriptor) payload.face_descriptor = faceDescriptor;
-
-                await api.post('attendance/mark/', payload);
-                setScanResult('Attendance Marked Successfully!');
-                setRequireFace(false);
-                setFaceError(''); // Clear face errors on success
-                fetchFullHistory();
-                setTimeout(() => setScanResult(''), 3000);
-            } catch (err) {
-                const responseData = err.response?.data;
-                if (responseData?.require_face) {
-                    // This is a prompt, not necessarily an "error" that needs a sticky overlay
-                    setError("Device mismatched. Live facial verification required.");
-                    setPendingQrToken(qrToken);
-                    setRequireFace(true);
-                    loadFaceModels(); 
-                } else {
-                    const errMsg = responseData?.error || 'Failed to mark attendance';
-                    setError(`${errMsg} (Token: ${qrToken.substring(0, 8)}...)`);
-                    setTimeout(() => setError(''), 5000);
-                }
+    const markAttendance = (qrToken, faceDescriptor = null) => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                const msg = "Geolocation is not supported by your browser. Cannot mark attendance.";
+                setError(msg);
+                setTimeout(() => setError(''), 5000);
+                return reject(new Error(msg));
             }
-        }, (err) => {
-            setError("Location access denied. Please enable location to mark attendance.");
-            setTimeout(() => setError(''), 5000);
+
+            setError("Fetching location... please wait");
+            
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                setError('');
+                try {
+                    const device_id = localStorage.getItem('trusted_device_id') || 'unknown';
+                    const payload = { 
+                        qr_token: qrToken,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        device_id: device_id
+                    };
+                    if (faceDescriptor) payload.face_descriptor = faceDescriptor;
+
+                    await api.post('attendance/mark/', payload);
+                    setScanResult('Attendance Marked Successfully!');
+                    setRequireFace(false);
+                    setFaceError(''); // Clear face errors on success
+                    fetchFullHistory();
+                    setTimeout(() => setScanResult(''), 3000);
+                    resolve();
+                } catch (err) {
+                    const responseData = err.response?.data;
+                    const errMsg = responseData?.error || 'Failed to mark attendance';
+                    
+                    if (responseData?.require_face) {
+                        setError("Device mismatched. Live facial verification required.");
+                        setPendingQrToken(qrToken);
+                        setRequireFace(true);
+                        loadFaceModels(); 
+                    } else {
+                        // If we were doing face verification, show it in the modal overlay
+                        if (faceDescriptor) {
+                            setFaceError(errMsg);
+                        } else {
+                            setError(`${errMsg} (Token: ${qrToken.substring(0, 8)}...)`);
+                            setTimeout(() => setError(''), 5000);
+                        }
+                    }
+                    // We don't necessarily want to call reject() here because we've handled the error state in UI
+                    resolve(); 
+                }
+            }, (err) => {
+                const msg = "Location access denied. Please enable location to mark attendance.";
+                setError(msg);
+                setTimeout(() => setError(''), 5000);
+                reject(new Error(msg));
+            });
         });
     };
 
