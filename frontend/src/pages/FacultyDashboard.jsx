@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const FacultyDashboard = () => {
     const [classes, setClasses] = useState([]);
@@ -126,8 +126,12 @@ const FacultyDashboard = () => {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude
                 });
-                setActiveSession(res.data);
-                setTimeLeft(300);
+                // Briefly set to null to force a visual 'blink' and ensure full component refresh
+                setActiveSession(null);
+                setTimeout(() => {
+                    setActiveSession(res.data);
+                    setTimeLeft(300);
+                }, 50);
             } catch(err) {
                 console.error(err);
                 alert("Failed to start session.");
@@ -166,6 +170,19 @@ const FacultyDashboard = () => {
         } catch (err) {
             console.error("Failed to fetch session history", err);
             alert("Failed to load session history. Please try again.");
+        }
+    };
+
+    const downloadQRCode = () => {
+        const canvas = document.getElementById('active-qr-canvas');
+        if (canvas) {
+            const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+            let downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = `qr_session_${activeSession.subject || activeSession.id}.png`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
         }
     };
 
@@ -251,9 +268,24 @@ const FacultyDashboard = () => {
                             <div>
                                 <h3 className="text-xl font-bold mb-4">Active Session</h3>
                                 {timeLeft > 0 ? (
-                                    <div>
-                                        <QRCodeSVG value={activeSession.qr_token} size={256} />
-                                        <p className="mt-2 text-center font-bold text-red-500">Expires in: {timeLeft}s</p>
+                                    <div className="flex flex-col items-center">
+                                        <div className="bg-white p-2 rounded shadow-inner">
+                                            <QRCodeCanvas 
+                                                id="active-qr-canvas"
+                                                key={activeSession.qr_token}
+                                                value={activeSession.qr_token} 
+                                                size={256}
+                                                level={"H"}
+                                                includeMargin={true}
+                                            />
+                                        </div>
+                                        <p className="mt-2 text-center font-bold text-red-500 animate-pulse">Expires in: {timeLeft}s</p>
+                                        <button 
+                                            onClick={downloadQRCode}
+                                            className="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all transform active:scale-95 shadow-lg w-full justify-center"
+                                        >
+                                            💾 Download QR Image
+                                        </button>
                                     </div>
                                 ) : (
                                     <div className="w-64 h-64 bg-gray-700 flex items-center justify-center rounded">

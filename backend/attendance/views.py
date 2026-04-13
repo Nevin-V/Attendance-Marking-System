@@ -80,8 +80,10 @@ class MarkAttendanceView(views.APIView):
             if not session.is_active:
                 return Response({'error': 'Session is inactive'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Check for 5-minute expiration
-            if timezone.now() > session.start_time + timedelta(seconds=300):
+            # Check for 5-minute expiration (300 seconds)
+            time_diff = (timezone.now() - session.start_time).total_seconds()
+            if time_diff > 300:
+                 print(f"FAILED ATTENDANCE: Session {session.id} expired. Time elapsed: {time_diff}s. Token: {qr_token[:10]}...")
                  return Response({'error': 'QR Code expired. Ask faculty to start a new session.'}, status=status.HTTP_400_BAD_REQUEST)
 
             if Attendance.objects.filter(student=request.user, session=session).exists():

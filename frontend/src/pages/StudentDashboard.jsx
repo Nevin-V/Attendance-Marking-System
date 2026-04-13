@@ -48,18 +48,32 @@ const StudentDashboard = () => {
                     experimentalFeatures: {
                         useBarCodeDetectorIfSupported: true
                     },
-                    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+                    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
+                    showNotScanSameQrCode: false, // Force re-scan
                 },
             /* verbose= */ false
             );
 
-            scanner.render(onScanSuccess, onScanFailure);
-
-            function onScanSuccess(decodedText) {
-                scanner.clear();
-                setScanning(false);
-                markAttendance(decodedText);
-            }
+            let isProcessing = false;
+            scanner.render((decodedText) => {
+                if (isProcessing) return;
+                isProcessing = true;
+                
+                console.log("Scanned QR Token:", decodedText);
+                
+                // Stop the scanner immediately and clear UI to prevent buffering multiple results
+                scanner.clear().then(() => {
+                    setScanning(false);
+                    setError(''); // Clear any previous 'expired' error immediately on fresh scan
+                    markAttendance(decodedText);
+                }).catch(err => {
+                    console.error("Scanner clear failed", err);
+                    setScanning(false);
+                    markAttendance(decodedText);
+                });
+            }, (error) => {
+                // Ignore transient scanning errors to keep UI quiet
+            });
 
             function onScanFailure(error) {
                 // console.warn(`Code scan error = ${error}`);
@@ -109,7 +123,8 @@ const StudentDashboard = () => {
                     setRequireFace(true);
                     loadFaceModels(); 
                 } else {
-                    setError(responseData?.error || 'Failed to mark attendance');
+                    const errMsg = responseData?.error || 'Failed to mark attendance';
+                    setError(`${errMsg} (Token: ${qrToken.substring(0, 8)}...)`);
                     setTimeout(() => setError(''), 5000);
                 }
             }
