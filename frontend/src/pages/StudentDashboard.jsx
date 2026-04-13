@@ -143,6 +143,10 @@ const StudentDashboard = () => {
                 setError(msg);
                 setTimeout(() => setError(''), 5000);
                 reject(new Error(msg));
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             });
         });
     };

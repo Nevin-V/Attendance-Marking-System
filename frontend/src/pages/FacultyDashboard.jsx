@@ -138,6 +138,10 @@ const FacultyDashboard = () => {
             }
         }, (err) => {
             alert("Location access denied. Please enable location to start a session.");
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
         });
     };
 
